@@ -1,3 +1,5 @@
+import os
+
 import configparser
 from datetime import timedelta
 
@@ -5,15 +7,12 @@ import praw
 from loguru import logger as botlogger
 
 botlogger.add("formatbot.log", backtrace=True)
-config = configparser.ConfigParser()
-config.read("formatbot.cfg")
 
-USERNAME = config['Reddit']['username']
+USERNAME = os.environ['REDDIT_USERNAME']
+SUBREDDIT = os.environ['SUBREDDIT']
+READONLY = bool(os.environ.get('DEBUG', False))
 
-SUBREDDIT = config['Bot']['subreddit']
-READONLY = config['Bot'].getboolean('debug', fallback=False)
-
-MAX_POST_AGE_DELTA = timedelta(minutes=int(config['Bot']['max_post_age']))
+MAX_POST_AGE_DELTA = timedelta(minutes=int(os.environ['MAX_POST_AGE_MINS']))
 
 TEMPLATE = (
     "Hello u/{op}, I'm a bot that can assist you with code-formatting for reddit.\n"
@@ -26,13 +25,12 @@ TEMPLATE = (
 
 @botlogger.catch
 def get_reddit():
-    reddit_config = config['Reddit']
     reddit = praw.Reddit(
-        client_id=reddit_config['client_id'],
-        client_secret=reddit_config['client_secret'],
-        username=reddit_config['username'],
-        password=reddit_config['password'],
-        user_agent=reddit_config['user_agent'],
+        client_id=os.environ['REDDIT_CLIENT_ID'],
+        client_secret=os.environ['REDDIT_CLIENT_SECRET'],
+        username=os.environ['REDDIT_USERNAME'],
+        password=os.environ['REDDIT_PASSWORD'],
+        user_agent=os.environ['REDDIT_USER_AGENT']
     )
     return reddit
 
