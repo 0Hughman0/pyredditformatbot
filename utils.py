@@ -11,6 +11,7 @@ config.read("formatbot.cfg")
 USERNAME = config['Reddit']['username']
 
 SUBREDDIT = config['Bot']['subreddit']
+READONLY = config['Bot'].getboolean('debug', fallback=False)
 
 MAX_POST_AGE_DELTA = timedelta(minutes=int(config['Bot']['max_post_age']))
 
@@ -37,6 +38,6 @@ def get_reddit():
 
 
 @botlogger.catch
-def get_comment(op, issues):
+def create_comment(op, issues):
     issues_str = '\n'.join(f'{i}. {d}' for i, d in enumerate(issues, 1))
     return TEMPLATE.format(op=op, issues_str=issues_str)
