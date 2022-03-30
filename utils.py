@@ -10,17 +10,12 @@ botlogger.add("formatbot.log", backtrace=True)
 
 USERNAME = os.environ['REDDIT_USERNAME']
 SUBREDDIT = os.environ['SUBREDDIT']
-READONLY = bool(os.environ.get('DEBUG', False))
+READONLY = os.environ.get('DEBUG', 'false').lower() == 'true'
 
 MAX_POST_AGE_DELTA = timedelta(minutes=int(os.environ['MAX_POST_AGE_MINS']))
 
-TEMPLATE = (
-    "Hello u/{op}, I'm a bot that can assist you with code-formatting for reddit.\n"
-    'I have detected the following potential issue(s) with your submission:\n\n'
-    "{issues_str}\n\nIf I am correct then please follow [these instructions]"
-    "(https://www.reddit.com/r/learnpython/wiki/faq#wiki_how_do_i_format_code.3F) "
-    "to fix your code formatting. Thanks!"
-)
+with open('comment.tmplt.md') as fs:
+    TEMPLATE = fs.read()
 
 
 @botlogger.catch
