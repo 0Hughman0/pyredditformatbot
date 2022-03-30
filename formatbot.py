@@ -24,9 +24,13 @@ def main():
     comment_count = 0
     
     for submission in subreddit.stream.submissions():
+        if submission.author is None:
+            botlogger.info("OP seems to have deleted account, skipping")
+            continue
+
         op = submission.author.name
     
-        if any(comment.author.name.lower() == me for comment in submission.comments):
+        if any(comment.author.name.lower() == me for comment in submission.comments if comment.author):  # comment.author needed because people delete their accounts!
             botlogger.info(f"I've already commented on {op}'s post. Moving on.")
             continue
             
@@ -37,6 +41,10 @@ def main():
             continue
         
         submission_text = submission.selftext
+        
+        if submission_text is None:
+            botlogger.info("OP seems to have deleted post, skipping")
+            continue
         
         issues_found = []
         
