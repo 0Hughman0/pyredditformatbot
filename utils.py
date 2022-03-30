@@ -12,6 +12,7 @@ USERNAME = os.environ['REDDIT_USERNAME']
 SUBREDDIT = os.environ['SUBREDDIT']
 READONLY = os.environ.get('DEBUG', 'false').lower() == 'true'
 
+POST_LIMIT = int(os.environ.get('POST_LIMIT', 0))
 MAX_POST_AGE_DELTA = timedelta(minutes=int(os.environ['MAX_POST_AGE_MINS']))
 
 with open('comment.tmplt.md') as fs:
