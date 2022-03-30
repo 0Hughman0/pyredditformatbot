@@ -63,8 +63,12 @@ def main():
             botlogger.info(f"Would have created comment:\n\n{comment}\n\nbut READONLY={utils.READONLY}")
             
         comment_count += 1
-
+        
         botlogger.info(f"Comment left on {op}'s post")
+        
+        if (utils.COMMENT_LIMIT != -1) and (comment_count >= utils.COMMENT_LIMIT):
+            botlogger.info(f"Reached comment limit, heading to bed")
+            break
     
         time.sleep(10)  # comment cool-down, need karma!
         botlogger.info("Done sleeping for now.")
