@@ -11,7 +11,7 @@ from loguru import logger as botlogger
 USERNAME = os.environ['REDDIT_USERNAME']
 SUBREDDIT = os.environ['SUBREDDIT']
 DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'
-READONLY = DEBUG
+READONLY = os.environ.get('READONLY', 'false').lower() == 'true'
 
 COMMENT_LIMIT = int(os.environ.get('COMMENT_LIMIT', -1))
 MAX_POST_AGE_DELTA = timedelta(minutes=int(os.environ['MAX_POST_AGE_MINS']))
