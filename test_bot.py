@@ -21,6 +21,41 @@ This is fine.
 '''
 
 
+text_triple_backtick = """
+Hey 
+
+```
+This is a code block
+
+And some more
+```
+
+This ain't
+"""
+
+text_triple_curlywhirly = """
+Hey 
+
+~~~
+This is a code block
+
+And some more
+~~~
+
+This ain't
+"""
+
+text_triple_backtick_singleline = """
+Hey 
+
+```
+This is a code block
+```
+
+This ain't
+"""
+
+
 text_def = '''
 x = 1
 def func(p, n):
@@ -136,11 +171,20 @@ def test_issues_regex():
                       text_match]:
         assert issue_block.check_text(test_text)
     
-    assert not issue_block.check_text(text_proper)
+    assert issue_block.check_text(text_proper) is None
     
     issue_inline = MultipleInlineIssue
     assert issue_inline.check_text(text_multi_inline)
     
-    assert not issue_inline.check_text(text_proper)
-    assert not issue_inline.check_text(text_split_multiinline)
+    assert issue_inline.check_text(text_proper) is None
+    assert issue_inline.check_text(text_split_multiinline) is None
+    
+    issue_backticks = TripleBacktickCodeBlockIssue
+    
+    assert issue_backticks.check_text(text_triple_backtick)
+    assert issue_backticks.check_text(text_triple_curlywhirly)
+    assert issue_backticks.check_text(text_proper) is None
+    assert issue_backticks.check_text(text_triple_backtick_singleline) is None
+    
+    
 

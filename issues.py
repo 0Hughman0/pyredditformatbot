@@ -21,6 +21,12 @@ class _BaseIssue:
 class MultipleInlineIssue(_BaseIssue):
     _description = "Multiple consecutive lines have been found to contain inline formatting."
     _pattern = re.compile(r'(?:\s*?`.*?`\s*?[\n]+){2,}', re.MULTILINE)
+    
+    
+class TripleBacktickCodeBlockIssue(_BaseIssue):
+    _description = "Use of triple backtick/ curlywhirly code blocks (` ``` ` ) or (`~~~`). These may not render correctly on all Reddit clients."
+    _pattern = re.compile(r'^(```(?:[^`]*?\n){3,}?```|~~~(?:[^~]*?\n){3,}?~~~)', re.MULTILINE)  # turns out reddit actually sometimes renders ```code``` correctly!
+
 
 
 class NoCodeBlockIssue(_BaseIssue):
@@ -39,4 +45,4 @@ class NoCodeBlockIssue(_BaseIssue):
         ''', re.VERBOSE | re.MULTILINE)
 
 
-VALIDATORS = [MultipleInlineIssue, NoCodeBlockIssue, ]
+VALIDATORS = [MultipleInlineIssue, NoCodeBlockIssue, TripleBacktickCodeBlockIssue]
