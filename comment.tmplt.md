@@ -4,7 +4,7 @@ I have detected the following potential issue(s) with your submission:
 
 {issues_str}
 
-If I am correct then please follow [these instructions](https://www.reddit.com/r/learnpython/wiki/faq#wiki_how_do_i_format_code.3F) to fix your code formatting. Thanks!
+If I am correct then please try to follow [these instructions](https://www.reddit.com/r/learnpython/wiki/faq#wiki_how_do_i_format_code.3F) to fix up your post formatting. This will help people help you. Thanks!
 
 ___
 

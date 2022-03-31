@@ -4,19 +4,23 @@ import configparser
 from datetime import timedelta
 
 import praw
+import logging
 from loguru import logger as botlogger
 
-botlogger.add("formatbot.log", backtrace=True)
 
 USERNAME = os.environ['REDDIT_USERNAME']
 SUBREDDIT = os.environ['SUBREDDIT']
-READONLY = os.environ.get('DEBUG', 'false').lower() == 'true'
+DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'
+READONLY = DEBUG
 
 COMMENT_LIMIT = int(os.environ.get('COMMENT_LIMIT', -1))
 MAX_POST_AGE_DELTA = timedelta(minutes=int(os.environ['MAX_POST_AGE_MINS']))
 
 with open('comment.tmplt.md') as fs:
     TEMPLATE = fs.read()
+    
+    
+botlogger.add("formatbot.log", backtrace=True, level=(logging.DEBUG if DEBUG else logging.INFO))
 
 
 @botlogger.catch

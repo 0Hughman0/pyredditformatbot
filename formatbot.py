@@ -8,9 +8,9 @@ from utils import botlogger
 import logging
 
 handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
+handler.setLevel(logging.DEBUG if utils.DEBUG else logging.INFO)
 logger = logging.getLogger('prawcore')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG if utils.DEBUG else logging.INFO)
 logger.addHandler(handler)
 
 
@@ -25,26 +25,28 @@ def main():
     
     for submission in subreddit.stream.submissions():
         if submission.author is None:
-            botlogger.info("OP seems to have deleted account, skipping")
+            botlogger.debug("OP seems to have deleted account, skipping")
             continue
 
         op = submission.author.name
     
         if any(comment.author.name.lower() == me for comment in submission.comments if comment.author):  # comment.author needed because people delete their accounts!
-            botlogger.info(f"I've already commented on {op}'s post. Moving on.")
+            botlogger.debug(f"I've already commented on {op}'s post. Moving on.")
             continue
             
         time_created = datetime.fromtimestamp(submission.created_utc)
         
         if (datetime.now() - time_created) > utils.MAX_POST_AGE_DELTA:
-            botlogger.info('No comment left due to age of post.')
+            botlogger.debug('No comment left due to age of post.')
             continue
         
         submission_text = submission.selftext
         
         if submission_text is None:
-            botlogger.info("OP seems to have deleted post, skipping")
+            botlogger.debug("OP seems to have deleted post, skipping")
             continue
+            
+        botlogger.debug(f"Checking post text:\n\n{submission_text}")
         
         issues_found = []
         
@@ -55,7 +57,7 @@ def main():
                 issues_found.append(issue)
         
         if not issues_found:
-            botlogger.info(f"No issues found in {op}'s post")
+            botlogger.debug(f"No issues found in {op}'s post")
             continue
             
         botlogger.info(f"Issues found in {op}'s submission")
@@ -68,14 +70,14 @@ def main():
         if not utils.READONLY:
             submission.reply(comment)
         else:
-            botlogger.info(f"Would have created comment:\n\n{comment}\n\nbut READONLY={utils.READONLY}")
+            botlogger.debug(f"Would have created comment:\n\n{comment}\n\nbut READONLY={utils.READONLY}")
             
         comment_count += 1
         
         botlogger.info(f"Comment left on {op}'s post")
         
         if (utils.COMMENT_LIMIT != -1) and (comment_count >= utils.COMMENT_LIMIT):
-            botlogger.info(f"Reached comment limit, heading to bed")
+            botlogger.debug(f"Reached comment limit, heading to bed")
             break
     
         time.sleep(10)  # comment cool-down, need karma!
