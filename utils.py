@@ -14,7 +14,7 @@ DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'
 READONLY = os.environ.get('READONLY', 'false').lower() == 'true'
 
 COMMENT_LIMIT = int(os.environ.get('COMMENT_LIMIT', -1))
-MAX_POST_AGE_DELTA = timedelta(minutes=int(os.environ['MAX_POST_AGE_MINS']))
+MAX_POST_AGE_DELTA = timedelta(minutes=int(os.environ.get('MAX_POST_AGE_MINS', 30)))
 
 with open('comment.tmplt.md') as fs:
     TEMPLATE = fs.read()
