@@ -6,9 +6,9 @@ name = "pypi"
 [packages]
 loguru = "~=0.2.5"
 praw = "~=7.5.0"
-pytest = "*"
 
 [dev-packages]
+pytest = "~=7.1.0"
 
 [requires]
 python_version = "3.9"
