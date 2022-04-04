@@ -19,7 +19,7 @@ class _BaseIssue:
 
 
 class MultipleInlineIssue(_BaseIssue):
-    _description = "Multiple consecutive lines have been found to contain inline formatting."
+    _description = "Inline formatting (`` `my code` ``) used across multiple lines of code. This can mess with indentation."
     _pattern = re.compile(r'(?:\s*?`.*?`\s*?[\n]+){2,}', re.MULTILINE)
     
     
@@ -30,7 +30,7 @@ class TripleBacktickCodeBlockIssue(_BaseIssue):
 
 
 class NoCodeBlockIssue(_BaseIssue):
-    _description = "Python code found in submission text but not encapsulated in a code block."
+    _description = "Python code found in submission text that's not formatted as code."
     _pattern = re.compile(r'''
         ^(?:                        # any of the following is on the left-hand margin (not four spaces in)
             try                     # try block
