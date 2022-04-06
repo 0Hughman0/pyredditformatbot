@@ -1,12 +1,10 @@
-Hello, I'm a Reddit bot who's here to help people nicely format their coding questions. This makes it as easy as possible for people to help you.
+Hello, I'm a Reddit bot who's here to help people nicely format their coding questions. This makes it as easy as possible for people to read your post and help you.
 
-I think I have detected the some formatting issues with your submission:
+I think I have detected some formatting issues with your submission:
 
 {issues_str}
 
-If I am correct please edit the text in your post and try to follow [these instructions](https://www.reddit.com/r/learnpython/wiki/faq#wiki_how_do_i_format_code.3F) to fix up your post's formatting.
-
-Please let me know if I was helpful (or not!) by replying to this comment.
+If I am correct, please edit the text in your post and try to follow [these instructions](https://www.reddit.com/r/learnpython/wiki/faq#wiki_how_do_i_format_code.3F) to fix up your post's formatting.
 
 ___
 

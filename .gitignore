@@ -373,3 +373,4 @@ fabric.properties
 .idea/httpRequests
 
 formatbot.cfg
+Pipfile.lock  # because cross platform is causing me greif
