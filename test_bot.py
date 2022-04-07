@@ -1,156 +1,21 @@
+import os
+from pathlib import Path
+
 import pytest
 import utils
 from formatbot import *
-from issues import *
+from issues import NoCodeBlockIssue, MultipleInlineIssue, TripleBacktickCodeBlockIssue
 
 
-text_multi_inline = '''
-`x = 1`
-`def func(p, n):`
-    `pass`
-'''
+no_codeblock_cases = {file.name[:-3]: Path(file).read_text() for file in 
+                      os.scandir('comment_cases/NoCodeBlock')}
+multi_inline_cases = {file.name[:-3]: Path(file).read_text() for file in os.scandir(                
+                      'comment_cases/MultipleInline')}
+triple_backtick_cases = {file.name[:-3]: Path(file).read_text() for file in os.scandir(
+                         'comment_cases/TripleBacktick')}
 
-text_split_multiinline = '''
-`x = 1`
-
-Then a bit of text
-
-`def func(p, n)`
-
-This is fine.
-'''
-
-
-text_triple_backtick = """
-Hey 
-
-```
-This is a code block
-
-And some more
-```
-
-This ain't
-"""
-
-text_triple_curlywhirly = """
-Hey 
-
-~~~
-This is a code block
-
-And some more
-~~~
-
-This ain't
-"""
-
-text_triple_backtick_singleline = """
-Hey 
-
-```
-This is a code block
-```
-
-This ain't
-"""
-
-
-text_def = '''
-x = 1
-def func(p, n):
-    pass
-
-'''
-
-
-text_try = '''
-Pls hLP my codes!!!
-try:
-x = "FrEe homEwork Hlp"
-except:
-pass
-'''
-
-
-text_class = '''
-x = 1
-class MyClass:
-    pass
-
-'''
-
-
-text_def = '''
-Test post
-
-def my_func():
-    print("isn't indented")
-
-ok
-'''
-
-
-text_for_loop = '''
-Here is my issue 
-
-for x, y, z in collection:
-   print(x, y, z)
-   
-'''
-
-
-text_while = '''
-Test post
-
-while True:
-    print("isn't indented")
-
-ok
-'''
-
-
-text_if = '''
-Test post
-
-if True:
-    print("isn't indented")
-
-ok
-'''
-
-
-text_with = '''
-Test post
-
-with open('some.txt') as fs:
-    print("isn't indented")
-
-ok
-'''
-
-text_match = '''
-Test post
-
-match 'I don't know the syntax!':
-    print("isn't indented")
-
-ok
-'''
-
-text_proper = '''
-for tricking regex:
-    def func(p):
-        pass
-    class MyClass:
-        pass
-    for x in y:
-        pass
-    try:
-        x = True
-    except:
-        pass
-'''
+valid_comments = {file.name[:-3]: Path(file).read_text() for file in os.scandir(
+                         'comment_cases/valid_comments')}
 
 
 def test_reddit_auth():
@@ -160,31 +25,23 @@ def test_reddit_auth():
 
 
 def test_issues_regex():
-    issue_block = NoCodeBlockIssue
+    # No code block
+    for test_text in no_codeblock_cases.values():
+        assert NoCodeBlockIssue.check_text(test_text)
+    
+    for valid_comment in valid_comments.values():
+        assert NoCodeBlockIssue.check_text(valid_comment) is None
 
-    for test_text in [text_try, 
-                      text_def, 
-                      text_for_loop,
-                      text_while,
-                      text_if,
-                      text_with,
-                      text_match]:
-        assert issue_block.check_text(test_text)
+    # multiple inline
+    for test_text in multi_inline_cases.values():
+        assert MultipleInlineIssue.check_text(test_text)
     
-    assert issue_block.check_text(text_proper) is None
+    for valid_comment in valid_comments.values():
+        assert MultipleInlineIssue.check_text(valid_comment) is None
     
-    issue_inline = MultipleInlineIssue
-    assert issue_inline.check_text(text_multi_inline)
+    # triple backticks 
+    for test_text in triple_backtick_cases.values():
+        assert TripleBacktickCodeBlockIssue.check_text(test_text)
     
-    assert issue_inline.check_text(text_proper) is None
-    assert issue_inline.check_text(text_split_multiinline) is None
-    
-    issue_backticks = TripleBacktickCodeBlockIssue
-    
-    assert issue_backticks.check_text(text_triple_backtick)
-    assert issue_backticks.check_text(text_triple_curlywhirly)
-    assert issue_backticks.check_text(text_proper) is None
-    assert issue_backticks.check_text(text_triple_backtick_singleline) is None
-    
-    
-
+    for valid_comment in valid_comments.values():
+        assert TripleBacktickCodeBlockIssue.check_text(valid_comment) is None
