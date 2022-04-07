@@ -32,10 +32,14 @@ def get_reddit():
         password=os.environ['REDDIT_PASSWORD'],
         user_agent=os.environ['REDDIT_USER_AGENT']
     )
+
+    if READONLY:
+        reddit.read_only = True
+
     return reddit
 
 
 @botlogger.catch
-def create_comment(op, issues):
+def create_comment(issues):
     issues_str = '\n'.join(f'{i}. {d}' for i, d in enumerate(issues, 1))
-    return TEMPLATE.format(op=op, issues_str=issues_str)
+    return TEMPLATE.format(issues_str=issues_str)
