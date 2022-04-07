@@ -34,7 +34,7 @@ def get_submission_info(submission, me):
 
     submission_text = submission.selftext
 
-    if submission_text is None:
+    if submission_text is None:  # might not be possible
         raise UncheckableSubmission("OP seems to have deleted post, skipping")
         
     return submission_text, op

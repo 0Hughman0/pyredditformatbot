@@ -1,6 +1,7 @@
 import re
 from utils import botlogger
 
+
 class _BaseIssue:
     _pattern = None
     _description = None
