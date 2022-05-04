@@ -87,13 +87,18 @@ def test_reddit_auth(monkeypatch):
 def test_issues_regex():
     no_codeblock_cases = {file.name[:-3]: Path(file).read_text() for file in 
                       os.scandir(SUBMISSION_CASES / 'NoCodeBlock')}
-    multi_inline_cases = {file.name[:-3]: Path(file).read_text() for file in os.scandir(                
+    multi_inline_cases = {file.name[:-3]: Path(file).read_text(encoding='utf-8') for file in os.scandir(                
                       SUBMISSION_CASES / 'MultipleInline')}
-    triple_backtick_cases = {file.name[:-3]: Path(file).read_text() for file in os.scandir(
+    triple_backtick_cases = {file.name[:-3]: Path(file).read_text(encoding='utf-8') for file in os.scandir(
                          SUBMISSION_CASES / 'TripleBacktick')}
 
-    valid_comments = {file.name[:-3]: Path(file).read_text() for file in os.scandir(
+    valid_comments = {file.name[:-3]: Path(file).read_text(encoding='utf-8') for file in os.scandir(
                          SUBMISSION_CASES / 'valid_submissions')}
+                         
+    user_false_positives = {file.name[:-3]: Path(file).read_text(encoding='utf-8') for file in os.scandir(
+                         SUBMISSION_CASES / 'UserFalsePositives')}
+                         
+    valid_comments.update(user_false_positives)
 
     # No code block
     for test_text in no_codeblock_cases.values():
@@ -136,7 +141,7 @@ def test_submission_info_getter(submission_getter, submission_maker, monkeypatch
     with pytest.raises(UncheckableSubmission):
         text = get_submission_info(deleted_sub, me)
     
-    # make max age to be zero
+    # make max age too old
     
     new_submission.created_utc -= (2 * utils.MAX_POST_AGE_DELTA).total_seconds()
 
@@ -179,7 +184,7 @@ def test_bot_comment_once(submission_maker, submission_getter, caplog):
 
 
 def test_bot_comment_limit(submission_maker, submission_getter, caplog, monkeypatch):
-    # test comment limit
+    # test comment limit, unlimited
     monkeypatch.setattr('utils.COMMENT_LIMIT', -1)
     
     invalid_submission_text = (SUBMISSION_CASES / 'NoCodeBlock' / 'text_for_loop.md').read_text()
@@ -190,9 +195,9 @@ def test_bot_comment_limit(submission_maker, submission_getter, caplog, monkeypa
 
     assert extra_submission.reply.called
     
-    extra_submission.comments.clear()
-    invalid_submission.comments.clear()
-    extra_submission.reply.reset_mock()
+    extra_submission.comments.clear() # remove replies
+    invalid_submission.comments.clear() # remove replies
+    extra_submission.reply.reset_mock() # forget it's been replied to above
     
     monkeypatch.setattr('utils.COMMENT_LIMIT', 1)
     

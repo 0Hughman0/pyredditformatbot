@@ -1,3 +1,4 @@
+import ast
 import re
 from utils import botlogger
 
@@ -32,18 +33,41 @@ class TripleBacktickCodeBlockIssue(_BaseIssue):
 
 class NoCodeBlockIssue(_BaseIssue):
     _description = "Python code found in submission text that's not formatted as code."
-    _pattern = re.compile(r'''
-        ^(?:                        # any of the following is on the left-hand margin (not four spaces in)
-            try                     # try block
-            |class\s.*?             # class detection
-            |def\s.*?\(.*?\)        # function detection
-            |for\s.*?\sin\s.*?      # for loop detection
-            |while\s.*?             # while loop detection
-            |if\s.*?                # if block detection
-            |with\s.*?              # with block detection
-            |match\s.*?             # match block detection
-        ):                          # END NON-CAPTURE GROUP -- literal colon
-        ''', re.VERBOSE | re.MULTILINE)
+    
+    @classmethod
+    def check_text(cls, text):
+    
+        ilines = iter(text.splitlines())
+        
+        for line in ilines:
+            if not line:
+                continue
+                            
+            found_block = False
+            
+            try:
+                tree = ast.parse(line)
+            except IndentationError as e:  # must be in this order because IndentationError is a subclass of SyntaxError!
+                if e.msg == 'expected an indented block':
+                    found_block = True
+            except SyntaxError as e:
+                if e.msg == 'unexpected EOF while parsing':  
+                    found_block = True# indented code.
+            
+            if found_block:                    
+                next_line = next(ilines)
+                
+                while not next_line:
+                    next_line = next(ilines) # ensures next line with content
+                
+                try:
+                    ast.parse(next_line)
+                except IndentationError:
+                    return cls(text) # was probably code
+                except SyntaxError:
+                    continue
+
+        return None
 
 
 VALIDATORS = [MultipleInlineIssue, NoCodeBlockIssue, TripleBacktickCodeBlockIssue]
