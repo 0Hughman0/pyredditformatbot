@@ -99,6 +99,7 @@ def main(submission_stream=None):
 
         if (utils.COMMENT_LIMIT != -1) and (comment_count >= utils.COMMENT_LIMIT):
             botlogger.debug("Reached comment limit, heading to bed")
+            break
 
 
 if __name__ == '__main__':

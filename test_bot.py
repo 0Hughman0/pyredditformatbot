@@ -3,6 +3,7 @@ from pathlib import Path
 import datetime
 import logging
 import time
+from unittest.mock import Mock
 
 import pytest
 from loguru import logger
@@ -13,7 +14,7 @@ from formatbot import get_submission_info, UncheckableSubmission, main
 from issues import NoCodeBlockIssue, MultipleInlineIssue, TripleBacktickCodeBlockIssue
 
 
-SUBMISSION_CASES = Path('submission_cases')
+SUBMISSION_CASES = Path('submission_cases')    
 
 
 @pytest.fixture
@@ -24,27 +25,51 @@ def caplog(caplog: LogCaptureFixture):  # see https://loguru.readthedocs.io/en/s
 
 
 @pytest.fixture
-def reddit_testing(monkeypatch):
-    monkeypatch.setattr('utils.SUBREDDIT', 'testingground4bots')
-    monkeypatch.setattr('utils.READONLY', False)
-    return utils.get_reddit()
+def mock_reddit(monkeypatch):
+    reddit = utils.get_reddit()
+    reddit.read_only = True
+    reddit._mock_submissions = {}
+    
+    def mock_submission_getter(id):
+        return reddit._mock_submissions[id]
+    
+    reddit.submission = Mock()
+    reddit.submission.side_effect = mock_submission_getter
+    
+    return reddit
 
 
 @pytest.fixture
-def submission_maker(reddit_testing):
-    testing_sub = reddit_testing.subreddit('testingground4bots')
+def submission_maker(mock_reddit):
     
     def sub_maker(title, text):
         title = 'PyRedditFormatBotTesting - ' + title
-        return testing_sub.submit(title=title, selftext=text)
+        
+        mock_sub = Mock()
+        mock_sub.title = title
+        mock_sub.selftext = text
+        mock_sub.created_utc = datetime.datetime.now().timestamp()
+        mock_sub.comments = []
+        
+        def save_reply(reply):
+            mock_reply = Mock()
+            mock_reply.author.name = utils.USERNAME
+            mock_sub.comments.append(mock_reply)
+        
+        mock_sub.reply.side_effect = save_reply
+        
+        mock_reddit._mock_submissions[mock_sub] = mock_sub
+        
+        return mock_sub
         
     return sub_maker
 
 
+
 @pytest.fixture
-def submission_getter(reddit_testing):
+def submission_getter(mock_reddit):
     def sub_getter(id_):
-        return reddit_testing.submission(id=id_)
+        return mock_reddit.submission(id=id_)
 
     return sub_getter
     
@@ -57,7 +82,6 @@ def test_reddit_auth(monkeypatch):
     monkeypatch.setattr('utils.READONLY', True)
     reddit = utils.get_reddit()
     assert reddit.read_only is True
-
 
 
 def test_issues_regex():
@@ -101,19 +125,20 @@ def test_submission_info_getter(submission_getter, submission_maker, monkeypatch
     
     assert text == "Test text"
     
-    deleted_sub = submission_getter('tyfvah')
+    deleted_sub = submission_maker('deleted sub', None)
+    deleted_sub.author = None
     
     with pytest.raises(UncheckableSubmission):
         text = get_submission_info(deleted_sub, me)
 
-    deleted_account = submission_getter('p0kmw8')
+    deleted_account = submission_maker('deleted account', 'some text')
 
     with pytest.raises(UncheckableSubmission):
         text = get_submission_info(deleted_sub, me)
     
     # make max age to be zero
     
-    monkeypatch.setattr('utils.MAX_POST_AGE_DELTA', datetime.timedelta())
+    new_submission.created_utc -= (2 * utils.MAX_POST_AGE_DELTA).total_seconds()
 
     # assert it's no longer happy.
     
@@ -121,47 +146,57 @@ def test_submission_info_getter(submission_getter, submission_maker, monkeypatch
         text = get_submission_info(new_submission, me)
 
 
-@pytest.mark.slow
-def test_bot_logic(submission_maker, submission_getter, caplog, monkeypatch):
-    caplog.set_level(logging.DEBUG)
-
-    # test valid submission
+def test_bot_valid_submission(submission_maker, submission_getter):
     valid_submission_text = (SUBMISSION_CASES / 'valid_submissions' / 'valid_submission.md').read_text()
-
     valid_submission = submission_maker('test bot logic valid comment', valid_submission_text)
 
     main(submission_stream=[valid_submission])
     
-    assert any([("No issues found in OP's post" in record.getMessage()) for record in caplog.records])
+    assert not valid_submission.reply.called
     
-    caplog.clear()
 
-    # test invalid submission
-
+def test_bot_invalid_submission(submission_maker, submission_getter):
     invalid_submission_text = (SUBMISSION_CASES / 'NoCodeBlock' / 'text_for_loop.md').read_text()
-    
     invalid_submission = submission_maker('test bot logic invalid comment', invalid_submission_text)
 
     main(submission_stream=[invalid_submission])
     
-    assert any([("Comment left on OP's post" in record.getMessage()) for record in caplog.records])
+    assert invalid_submission.reply.called
 
-    caplog.clear()
 
+def test_bot_comment_once(submission_maker, submission_getter, caplog):
     # test not commenting twice
 
-    time.sleep(10)  # oh shit, comment above needs time to appear.
-    already_commented_submission = submission_getter(invalid_submission.id)
+    invalid_submission_text = (SUBMISSION_CASES / 'NoCodeBlock' / 'text_for_loop.md').read_text()
+    invalid_submission = submission_maker('test bot logic invalid comment', invalid_submission_text)
     
-    main(submission_stream=[already_commented_submission])
+    main(submission_stream=[invalid_submission])
+
+    main(submission_stream=[invalid_submission])
     
+    assert invalid_submission.reply.call_count == 1
     assert any([("I've already commented on OP's post. Moving on." in record.getMessage()) for record in caplog.records])
 
+
+def test_bot_comment_limit(submission_maker, submission_getter, caplog, monkeypatch):
     # test comment limit
-    
-
     monkeypatch.setattr('utils.COMMENT_LIMIT', -1)
+    
+    invalid_submission_text = (SUBMISSION_CASES / 'NoCodeBlock' / 'text_for_loop.md').read_text()
+    invalid_submission = submission_maker('test bot logic invalid comment', invalid_submission_text)
+    extra_submission = submission_maker('test bot logic invalid comment', invalid_submission_text)
 
+    main(submission_stream=[invalid_submission, extra_submission])
 
-    main(submission_stream=[invalid_submission, invalid_submission])
-
+    assert extra_submission.reply.called
+    
+    extra_submission.comments.clear()
+    invalid_submission.comments.clear()
+    extra_submission.reply.reset_mock()
+    
+    monkeypatch.setattr('utils.COMMENT_LIMIT', 1)
+    
+    main(submission_stream=[invalid_submission, extra_submission])
+    
+    assert not extra_submission.reply.called
+    
