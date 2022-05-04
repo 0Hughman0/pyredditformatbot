@@ -122,31 +122,46 @@ def test_submission_info_getter(submission_getter, submission_maker, monkeypatch
 
 
 @pytest.mark.slow
-def test_bot_logic(submission_maker, submission_getter, caplog):
+def test_bot_logic(submission_maker, submission_getter, caplog, monkeypatch):
     caplog.set_level(logging.DEBUG)
-    valid_submission = (SUBMISSION_CASES / 'valid_submissions' / 'valid_submission.md').read_text()
 
-    submission = submission_maker('test bot logic valid comment', valid_submission)
+    # test valid submission
+    valid_submission_text = (SUBMISSION_CASES / 'valid_submissions' / 'valid_submission.md').read_text()
 
-    main(submission_stream=[submission])
+    valid_submission = submission_maker('test bot logic valid comment', valid_submission_text)
+
+    main(submission_stream=[valid_submission])
     
     assert any([("No issues found in OP's post" in record.getMessage()) for record in caplog.records])
     
     caplog.clear()
 
-    invalid_submission = (SUBMISSION_CASES / 'NoCodeBlock' / 'text_for_loop.md').read_text()
-    
-    submission = submission_maker('test bot logic invalid comment', invalid_submission)
+    # test invalid submission
 
-    main(submission_stream=[submission])
+    invalid_submission_text = (SUBMISSION_CASES / 'NoCodeBlock' / 'text_for_loop.md').read_text()
+    
+    invalid_submission = submission_maker('test bot logic invalid comment', invalid_submission_text)
+
+    main(submission_stream=[invalid_submission])
     
     assert any([("Comment left on OP's post" in record.getMessage()) for record in caplog.records])
 
     caplog.clear()
 
+    # test not commenting twice
+
     time.sleep(10)  # oh shit, comment above needs time to appear.
-    submission = submission_getter(submission.id)
+    already_commented_submission = submission_getter(invalid_submission.id)
     
-    main(submission_stream=[submission])
+    main(submission_stream=[already_commented_submission])
     
     assert any([("I've already commented on OP's post. Moving on." in record.getMessage()) for record in caplog.records])
+
+    # test comment limit
+    
+
+    monkeypatch.setattr('utils.COMMENT_LIMIT', -1)
+
+
+    main(submission_stream=[invalid_submission, invalid_submission])
+
