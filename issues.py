@@ -26,7 +26,7 @@ class MultipleInlineIssue(_BaseIssue):
     
     
 class TripleBacktickCodeBlockIssue(_BaseIssue):
-    _description = "Use of triple backtick/ curlywhirly code blocks (` ``` ` ) or (`~~~`). These may not render correctly on all Reddit clients."
+    _description = "Use of triple backtick/ curlywhirly code blocks (```` ``` ```` or `~~~`). These may not render correctly on all Reddit clients."
     _pattern = re.compile(r'^(```(?:[^`]*?\n){3,}?```|~~~(?:[^~]*?\n){3,}?~~~)', re.MULTILINE)  # turns out reddit actually sometimes renders ```code``` correctly!
 
 
