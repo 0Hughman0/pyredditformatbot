@@ -49,7 +49,7 @@ class NoCodeBlockIssue(_BaseIssue):
         valid_code_line_count = 0
 
         for line in ilines:
-            if not line:
+            if not line or line.isspace():
                 continue
                             
             found_block = False
