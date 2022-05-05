@@ -33,12 +33,21 @@ class TripleBacktickCodeBlockIssue(_BaseIssue):
 
 class NoCodeBlockIssue(_BaseIssue):
     _description = "Python code found in submission text that's not formatted as code."
+    code_line_count_thresh = 3
     
     @classmethod
     def check_text(cls, text):
+        """
+        Bot triggers if it finds valid python code that's 3 lines long... 
+        
+        or if it finds some sort of code that requires the next line to be indented e.g. if statement.
+        
+        """
     
         ilines = iter(text.splitlines())
         
+        valid_code_line_count = 0
+
         for line in ilines:
             if not line:
                 continue
@@ -47,12 +56,17 @@ class NoCodeBlockIssue(_BaseIssue):
             
             try:
                 tree = ast.parse(line)
+                valid_code_line_count += 1
             except IndentationError as e:  # must be in this order because IndentationError is a subclass of SyntaxError!
                 if e.msg == 'expected an indented block':
                     found_block = True
+                else:
+                    valid_code_line_count = 0
             except SyntaxError as e:
                 if e.msg == 'unexpected EOF while parsing':  
                     found_block = True# indented code.
+                else:
+                    valid_code_line_count = 0
             
             if found_block:                    
                 next_line = next(ilines)
@@ -62,10 +76,15 @@ class NoCodeBlockIssue(_BaseIssue):
                 
                 try:
                     ast.parse(next_line)
+                    valid_code_line_count += 1
                 except IndentationError:
                     return cls(text) # was probably code
                 except SyntaxError:
+                    valid_code_line_count = 0
                     continue
+                    
+            if valid_code_line_count >= cls.code_line_count_thresh:
+                return cls(text)  # suffiencently long line of valid python code.
 
         return None
 
