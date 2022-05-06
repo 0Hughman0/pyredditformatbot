@@ -11,7 +11,7 @@ from _pytest.logging import LogCaptureFixture
 
 import utils
 from formatbot import get_submission_info, UncheckableSubmission, main
-from issues import NoCodeBlockIssue, MultipleInlineIssue, TripleBacktickCodeBlockIssue
+from issues import VALIDATORS
 
 
 SUBMISSION_CASES = Path('submission_cases')    
@@ -65,13 +65,19 @@ def submission_maker(mock_reddit):
     return sub_maker
 
 
-
 @pytest.fixture
 def submission_getter(mock_reddit):
     def sub_getter(id_):
         return mock_reddit.submission(id=id_)
 
     return sub_getter
+    
+    
+@pytest.fixture(params=VALIDATORS)
+def validator_test_cases(request):
+    validator = request.param
+    return validator, {file.name[:-3]: Path(file).read_text() for file in 
+                      os.scandir(SUBMISSION_CASES / validator.__name__)}
     
 
 def test_reddit_auth(monkeypatch):
@@ -84,42 +90,18 @@ def test_reddit_auth(monkeypatch):
     assert reddit.read_only is True
 
 
-def test_issues_regex():
-    no_codeblock_cases = {file.name[:-3]: Path(file).read_text() for file in 
-                      os.scandir(SUBMISSION_CASES / 'NoCodeBlock')}
-    multi_inline_cases = {file.name[:-3]: Path(file).read_text(encoding='utf-8') for file in os.scandir(                
-                      SUBMISSION_CASES / 'MultipleInline')}
-    triple_backtick_cases = {file.name[:-3]: Path(file).read_text(encoding='utf-8') for file in os.scandir(
-                         SUBMISSION_CASES / 'TripleBacktick')}
+def test_validators(validator_test_cases):
+    validator, validator_test_cases = validator_test_cases
 
     valid_comments = {file.name[:-3]: Path(file).read_text(encoding='utf-8') for file in os.scandir(
                          SUBMISSION_CASES / 'valid_submissions')}
                          
-    user_false_positives = {file.name[:-3]: Path(file).read_text(encoding='utf-8') for file in os.scandir(
-                         SUBMISSION_CASES / 'UserFalsePositives')}
-                         
-    valid_comments.update(user_false_positives)
-
     # No code block
-    for test_text in no_codeblock_cases.values():
-        assert NoCodeBlockIssue.check_text(test_text)
+    for test_text in validator_test_cases.values():
+        assert validator.check_text(test_text)
     
     for valid_comment in valid_comments.values():
-        assert NoCodeBlockIssue.check_text(valid_comment) is None
-
-    # multiple inline
-    for test_text in multi_inline_cases.values():
-        assert MultipleInlineIssue.check_text(test_text)
-    
-    for valid_comment in valid_comments.values():
-        assert MultipleInlineIssue.check_text(valid_comment) is None
-    
-    # triple backticks 
-    for test_text in triple_backtick_cases.values():
-        assert TripleBacktickCodeBlockIssue.check_text(test_text)
-    
-    for valid_comment in valid_comments.values():
-        assert TripleBacktickCodeBlockIssue.check_text(valid_comment) is None
+        assert validator.check_text(valid_comment) is None
 
 
 def test_submission_info_getter(submission_getter, submission_maker, monkeypatch):
@@ -161,7 +143,7 @@ def test_bot_valid_submission(submission_maker, submission_getter):
     
 
 def test_bot_invalid_submission(submission_maker, submission_getter):
-    invalid_submission_text = (SUBMISSION_CASES / 'NoCodeBlock' / 'text_for_loop.md').read_text()
+    invalid_submission_text = (SUBMISSION_CASES / 'NoCodeBlockIssue' / 'text_for_loop.md').read_text()
     invalid_submission = submission_maker('test bot logic invalid comment', invalid_submission_text)
 
     main(submission_stream=[invalid_submission])
@@ -172,7 +154,7 @@ def test_bot_invalid_submission(submission_maker, submission_getter):
 def test_bot_comment_once(submission_maker, submission_getter, caplog):
     # test not commenting twice
 
-    invalid_submission_text = (SUBMISSION_CASES / 'NoCodeBlock' / 'text_for_loop.md').read_text()
+    invalid_submission_text = (SUBMISSION_CASES / 'NoCodeBlockIssue' / 'text_for_loop.md').read_text()
     invalid_submission = submission_maker('test bot logic invalid comment', invalid_submission_text)
     
     main(submission_stream=[invalid_submission])
@@ -187,7 +169,7 @@ def test_bot_comment_limit(submission_maker, submission_getter, caplog, monkeypa
     # test comment limit, unlimited
     monkeypatch.setattr('utils.COMMENT_LIMIT', -1)
     
-    invalid_submission_text = (SUBMISSION_CASES / 'NoCodeBlock' / 'text_for_loop.md').read_text()
+    invalid_submission_text = (SUBMISSION_CASES / 'NoCodeBlockIssue' / 'text_for_loop.md').read_text()
     invalid_submission = submission_maker('test bot logic invalid comment', invalid_submission_text)
     extra_submission = submission_maker('test bot logic invalid comment', invalid_submission_text)
 
