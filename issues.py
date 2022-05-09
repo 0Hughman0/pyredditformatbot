@@ -30,15 +30,47 @@ class TripleBacktickCodeBlockIssue(_BaseIssue):
     _pattern = re.compile(r'^(```(?:[^`]*?\n){3,}?```|~~~(?:[^~]*?\n){3,}?~~~)', re.MULTILINE)  # turns out reddit actually sometimes renders ```code``` correctly!
 
 
+def iter_clean_lines(ilines):
+    for line in ilines:
+        if not line or line.isspace():
+            continue
+        else:
+            yield line
+
+
+def is_code(text):
+    try:
+        tree = ast.parse(text)
+        return tree
+    except IndentationError as e:  # must be in this order because IndentationError is a subclass of SyntaxError!
+        if e.msg == 'expected an indented block':
+            return True
+    except SyntaxError as e:
+        if e.msg == 'unexpected EOF while parsing':  
+            return True
+    
+    return False
+
 
 class NoCodeBlockIssue(_BaseIssue):
     _description = "Python code found in submission text that's not formatted as code."
     code_line_count_thresh = 3
     
+    indented_nodes = (ast.FunctionDef, 
+                      ast.AsyncFunctionDef, 
+                      ast.ClassDef, 
+                      ast.For,
+                      ast.AsyncFor,
+                      ast.While,
+                      ast.If,
+                      ast.With,
+                      ast.AsyncWith,
+                      ast.Try)
+    
     @classmethod
     def check_text(cls, text):
         """
-        Bot triggers if it finds valid python code that's 3 lines long... 
+        Bot triggers if it finds valid python code that's code_line_count_thresh lines long... 
         
         or if it finds some sort of code that requires the next line to be indented e.g. if statement.
         
@@ -48,43 +80,32 @@ class NoCodeBlockIssue(_BaseIssue):
         
         valid_code_line_count = 0
 
-        for line in ilines:
-            if not line or line.isspace():
+        i_clean_lines = iter_clean_lines(ilines)
+        for line in i_clean_lines:
+            if not is_code(line):
                 continue
-                            
-            found_block = False
             
-            try:
-                tree = ast.parse(line)
-                valid_code_line_count += 1
-            except IndentationError as e:  # must be in this order because IndentationError is a subclass of SyntaxError!
-                if e.msg == 'expected an indented block':
-                    found_block = True
-                else:
-                    valid_code_line_count = 0
-            except SyntaxError as e:
-                if e.msg == 'unexpected EOF while parsing':  
-                    found_block = True# indented code.
-                else:
-                    valid_code_line_count = 0
+            block = [line]
             
-            if found_block:                    
-                next_line = next(ilines)
-                
-                while not next_line:
-                    next_line = next(ilines) # ensures next line with content
-                
+            for i in range(cls.code_line_count_thresh - 1):  # -1 cuz additional lines to [line]
                 try:
-                    ast.parse(next_line)
-                    valid_code_line_count += 1
-                except IndentationError:
-                    return cls(text) # was probably code
-                except SyntaxError:
-                    valid_code_line_count = 0
+                    next_line = next(i_clean_lines)
+                except StopIteration: # end of text
+                    break
+                
+                block.append(next_line)  # build up block
+                
+                tree = is_code('\n'.join(block))
+                
+                if not tree: # invalid code
+                    break
+                elif isinstance(tree, bool):  # new line is probably incomplete statement
                     continue
-                    
-            if valid_code_line_count >= cls.code_line_count_thresh:
-                return cls(text)  # suffiencently long line of valid python code.
+                elif any(isinstance(node, cls.indented_nodes) for node in tree.body):
+                    return cls(text) # code is valid ill-formatted and indented, must fix!
+                
+            else:
+                return cls(text) # sufficiently long block of ill-formatted code.
 
         return None
 
